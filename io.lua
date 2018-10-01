@@ -144,8 +144,9 @@ function readAndSend()
     local gpiobStatusShort = mcp23017.readGPIOB()
     local needResend = false
     local buttonBit = 0
-    for buttonBit = 0, config.io.buttons_amount - 1 do
+
     
+    for buttonBit = 0, config.io.buttons_amount - 1 do
      local buttonIndex = buttonBit + 1;
      local currentButtonIndexValue
      if bit.isset(gpiobStatusShort, buttonBit) then
@@ -153,7 +154,6 @@ function readAndSend()
      else
         currentButtonIndexValue = 0
      end
-    
     
      if currentButtonIndexValue ~= aButtonStatus[buttonIndex] then
       needResend = true
