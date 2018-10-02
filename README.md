@@ -1,8 +1,6 @@
 # Home IoT Open windows sensor on NodeMCU (ESP8266)
 Устройство предназначено для получения состояния GPIO.
-
 Управлять можно например через Openhab:
-https://github.com/ssk181/home-switch-openhab
 
 ## Hardware
 - NodeMCU
