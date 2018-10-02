@@ -47,7 +47,7 @@ function mqttConnect(firstReconnect)
                 local topic_main = string.sub(topic, #topic_prefix + 1)
 
                 -- pin
-				print("MQTT message in: sub" .. string.sub(topic_main, 1, #config.mqtt.topic_pin + 1))
+				print("MQTT message in: sub " .. string.sub(topic_main, 1, #config.mqtt.topic_pin + 1))
                 -- state uptime
                 if topic_main == config.mqtt.topic_state_uptime then
                     mqttMessage(config.mqtt.topic_state_uptime, tmr.time())

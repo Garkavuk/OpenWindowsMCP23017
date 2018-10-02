@@ -88,20 +88,30 @@ function ioSendState(forceSend)
     local needResendA = false
     local needResendB = false
 
-needResendA, pinStatusA = readPinStates("A", mcp23017.readGPIOA(), config.io.pins_amountA)
-needResendB, pinStatusB = readPinStates("B", mcp23017.readGPIOB(), config.io.pins_amountB)
+    needResendA, pinStatusA = readPinStates("A", mcp23017.readGPIOA(), config.io.pins_amountA)
+    needResendB, pinStatusB = readPinStates("B", mcp23017.readGPIOB(), config.io.pins_amountB)
 
     if needResendA == true or needResendB == true or forceSend == true  then
-        sendPinStateMQTT(PinStatusA, config.io.pins_amountA)
-        sendPinStateMQTT(PinStatusB, config.io.pins_amountB)
+        sendPinStateMQTT("A", config.io.pins_amountA)
+        sendPinStateMQTT("B", config.io.pins_amountB)
     end
 end
 
-function sendPinStateMQTT(pinStatus, pins_amount)
-     local i = 1
-     for i = 1, pins_amount do
-        mqttMessage(config.mqtt.topic_pin .. "/" .. i, pinStatus[i] == 1 and 'ON' or 'OFF')
-     end
+function sendPinStateMQTT(pinType, pins_amount)
+    local pinStatus
+    local indexAdd
+    if pinType == "A" then
+        pinStatus = PinStatusA
+        indexAdd = 0
+    elseif pinType == "B" then
+        pinStatus = PinStatusB
+        indexAdd = 8
+    end
+
+    local i = 1
+    for i = 1, pins_amount do
+        mqttMessage(config.mqtt.topic_pin .. "/" .. i + indexAdd, pinStatus[i] == 1 and 'ON' or 'OFF')
+    end
 end
 
 function readPinStates(pinType, gpioStatus, pins_amount)
