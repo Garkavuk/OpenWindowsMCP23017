@@ -13,26 +13,19 @@ config = {
         pin_scl = 4
     },
     io = {
+--[[
         buttons_amount   = 8, -- 1 to 8
         relays_amount    = 8, -- 1 to 8
-        pin_interrupt    = 6,
-        button_delay_short_click_us = 20000,
+]]
+
+        pins_amountA     = 8,
+        pins_amountB     = 8,
+        pin_interruptA   = 5,
+        pin_interruptB   = 6,
+        button_delay_short_click_us = 100000,
         button_delay_long_click_us  = 500000,
         button_up_tmr_alarmd_id     = 3,
-        button_up_check_ms          = 500,
-        buttons_actions = { -- linked relays on short click and on long click
-            {{1}, {0}},
-            {{2}, {0}},
-            {{3}, {0}},
-            {{4}, {0}},
-            {{5}, {0}},
-            {{6}, {0}},
-            {{7}, {0}},
-            {{8}, {0}},
-        }
-    },
-    dht = {
-        pin = nil, -- GPIO pin index or nil if disabled
+        button_up_check_ms          = 500
     },
     mqtt = {
         broker_ip      = "192.168.88.100",
@@ -46,18 +39,18 @@ config = {
         queue_max_size = 50,
         topic          = "/home/iot",
         topic_online   = "online",
-        topic_button   = "button",
-        topic_relay    = "relay",
-        topic_climate_temp     = "climate/temp",
-        topic_climate_humidity = "climate/humidity",
+        topic_pin   = "pin",
+--[[        topic_button   = "button",]]
+--[[        topic_relay    = "relay",]]
         topic_state_uptime     = "state/uptime",
         topic_state_memory     = "state/memory",
-        topic_state_relay      = "state/relay",
+--[[        topic_state_relay      = "state/relay",]]
+        topic_state_pin      = "state/pin",
         dir_in         = "in",
         dir_out        = "out",
         msg_on         = "ON",
         msg_off        = "OFF",
         msg_invert     = "INVERT",
-        climate_cache_sec = 15
+--[[        climate_cache_sec = 15]]
     }
 }

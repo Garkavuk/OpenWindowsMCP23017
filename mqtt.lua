@@ -1,13 +1,12 @@
 mqttConnected = false
 mqttQueue = {}
-mqttClimate = {time = tmr.time(), temp = nil, humidity = nil}
 collectgarbageCounter = 0
 
 function mqttMessage(topic, message)
     if mqttConnected then
         local ip = wifi.sta.getip() or "none"
         mqttClient:publish(config.mqtt.topic .. "/" .. ip .. "/" .. config.mqtt.dir_out ..  "/" .. topic, message, 0, 0, function(client)
-            print("MQTT message sended") 
+            --[[print("MQTT message sended") ]]
         end)
         print("MQTT message send: " .. config.mqtt.topic .. "/" .. ip .. "/" .. config.mqtt.dir_out ..  "/" .. topic .. " - " .. message)
     else
@@ -35,10 +34,9 @@ function mqttConnect(firstReconnect)
                     print("MQTT subscribe")
                 end)
                 mqttMessage(config.mqtt.topic_online, config.mqtt.msg_on)
-                pcall(ioSendState)
+                ioSendState(true)
                 mqttConnected = true
                 print("MQTT connected success")
-                readAndSend()
                 mqttQueueSend()
             end)
             mqttClient:on("message", function(client, topic, message)
@@ -48,10 +46,10 @@ function mqttConnect(firstReconnect)
                 local topic_prefix = config.mqtt.topic .. "/" .. ip .. "/" .. config.mqtt.dir_in .. "/"
                 local topic_main = string.sub(topic, #topic_prefix + 1)
                 -- relay
-				print("MQTT message in: sub" .. string.sub(topic_main, 1, #config.mqtt.topic_relay + 1))
-                if string.sub(topic_main, 1, #config.mqtt.topic_relay + 1) == config.mqtt.topic_relay .. "/" then
+				print("MQTT message in: sub" .. string.sub(topic_main, 1, #config.mqtt.topic_pin + 1))
+                if string.sub(topic_main, 1, #config.mqtt.topic_pin + 1) == config.mqtt.topic_pin .. "/" then
 				
-                    local relayIndex = tonumber(string.sub(topic_main, #config.mqtt.topic_relay + 2))
+                    local relayIndex = tonumber(string.sub(topic_main, #config.mqtt.topic_pin + 2))
 					print("MQTT message in: relayIndex" .. relayIndex)
                     if relayIndex ~= nil then
                         local relaySet = nil
@@ -66,21 +64,16 @@ function mqttConnect(firstReconnect)
                             pcall(ioRelaySet, relayIndex, relaySet)
                         end
                     end
-                -- climate temp
-                elseif topic_main == config.mqtt.topic_climate_temp then
-                    mqttClimateSend(config.mqtt.topic_climate_temp)
-                -- climate humidity
-                elseif topic_main == config.mqtt.topic_climate_humidity then
-                    mqttClimateSend(config.mqtt.topic_climate_humidity)
+   
                 -- state uptime
                 elseif topic_main == config.mqtt.topic_state_uptime then
                     mqttMessage(config.mqtt.topic_state_uptime, tmr.time())
                 -- state memory
                 elseif topic_main == config.mqtt.topic_state_memory then
                     mqttMessage(config.mqtt.topic_state_memory, node.heap())
-                -- state relay
-                elseif topic_main == config.mqtt.topic_state_relay then
-                    pcall(ioSendState)
+                -- state pinState
+                elseif topic_main == config.mqtt.topic_state_pin then
+                    ioSendState(true)
                 end
 
                 collectgarbageCounter = collectgarbageCounter + 1
@@ -132,22 +125,6 @@ function mqttQueueSend()
             mqttMessage(msg["topic"], msg["message"])
         else
             i = i + 1
-        end
-    end
-end
-
-function mqttClimateSend(topic)
-    if topic == config.mqtt.topic_climate_temp or topic == config.mqtt.topic_climate_humidity then
-        if mqttClimate["temp"] == nil or tmr.time() - mqttClimate["time"] > config.mqtt.climate_cache_sec then
-            local climate = require("climate")
-            local error, temp,  humidity= climate.get()
-            mqttClimate["temp"]     = temp
-            mqttClimate["humidity"] = humidity
-            mqttClimate["time"]     = tmr.time()
-        end
-        local data = topic == config.mqtt.topic_climate_temp and mqttClimate["temp"] or mqttClimate["humidity"]
-        if data ~= nil then
-            mqttMessage(topic, data)
         end
     end
 end

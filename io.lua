@@ -1,244 +1,157 @@
 mcp23017 = require("mcp23017")
 
-buttonStateDown = 0
+PinStatusA = {}
+PinStatusB = {}
 
-aRelayStatus = {}
-for i = 1, config.io.relays_amount do aRelayStatus[i] = 0 end
+--[[
+function serialize(t)
+  local serializedValues = {}
+  local value, serializedValue
+  for i=1,#t do
+    value = t[i]
+    if value == nil then
+        table.insert(serializedValues, 'n')
+    else
+        serializedValue = type(value)=='table' and serialize(value) or value
+        table.insert(serializedValues, serializedValue)
+    end
+  end
+  return string.format("{ %s }", table.concat(serializedValues, ', ') )
+end
+]]
 
-aButtonStatus = {}
-for i = 1, config.io.buttons_amount do aButtonStatus[i] = 0 end
+for i = 1, config.io.pins_amountA do PinStatusA[i] = 0 end
+for i = 1, config.io.pins_amountB do PinStatusB[i] = 0 end
 
 mcp23017.begin(0x0, config.i2c.pin_sda, config.i2c.pin_scl, i2c.SLOW)
 
--- relays
-
 --Регистр IODIR определяет направление данных каждого разряда порта ввода\вывода.
 --Когда любой разряд IO7 – IO0 этого регистра установлен в единичное состояние,
 --соответствующий вывод порта становится входом;
 --когда данный разряд сброшен, соответствующий вывод становится выходом.
-mcp23017.writeIODIRA(0x00) -- make all GPIO pins as outputs
-
-mcp23017.writeGPIOA(0x00)  -- make all GIPO pins off/low
-
---Регистр IPOL отвечает за инверсию полярности входов портов.
---Когда любой разряд IP7 – IP0 этого регистра установлен в единичное состояние, соответствующий вход порта инвертируется;
---когда данный разряд сброшен, соответствующий вход порта не инвертируется
-mcp23017.writeIPOLA(0xFF)
-
--- buttons
-
---Регистр IODIR определяет направление данных каждого разряда порта ввода\вывода.
---Когда любой разряд IO7 – IO0 этого регистра установлен в единичное состояние,
---соответствующий вывод порта становится входом;
---когда данный разряд сброшен, соответствующий вывод становится выходом.
+mcp23017.writeIODIRA(0xFF) -- make all GPIO pins as inputs
 mcp23017.writeIODIRB(0xFF) -- make all GPIO pins as inputs
 
 --Регистр GPPU служит для подключения к входам портов подтягивающих к источнику питания резисторов 100 кОм.
 --Когда любой разряд из PU7 – PU0 этого регистра установлен в единичное состояние, 
 --         соответствующий вывод порта подключается к подтягивающему резистору;
 --когда данный разряд сброшен, соответствующий вывод порта отключается от резистора
+mcp23017.writeGPPUA(0xFF)  -- pull up resistor
 mcp23017.writeGPPUB(0xFF)  -- pull up resistor
 
 --Регистр GPINTEN управляет формированием прерывания для каждого вывода порта. 
 --Если любой из его разрядов GPINT7 – GPINT0 установлен, 
 --соответствующий вывод сформирует прерывание при изменении своего состояния. 
 --Сброс этих разрядов регистра запрещает формирование прерывания при изменении состояния входов портов.
+mcp23017.writeGPINTENA(0xFF) 
 mcp23017.writeGPINTENB(0xFF) 
 
 --Регистр DEFVAL представляет собой регистр сравнения с разрядами
 --портов и позволяет формировать прерывания для каждого вывода порта
 --при несовпадении соответствующего разряда порта и разряда DEF7 – DEF0 данного регистра
+mcp23017.writeDEFVALA(0x00)
 mcp23017.writeDEFVALB(0x00)
 
 --Регистр INTCON управляет реакцией входов порта на регистр сравнения для формирования прерывания.
 --Если разряд IOC7 – IOC0 установлен, соответствующий вход порта сравнивается с соответствующим разрядом в регистре DEFVAL.
 --Если разряд IOC7 – IOC0 сброшен, соответствующий вход порта сравнивается с его предшествующей величиной
+mcp23017.writeINTCONA(0x00)
 mcp23017.writeINTCONB(0x00)
 
 --Регистр IPOL отвечает за инверсию полярности входов портов.
 --Когда любой разряд IP7 – IP0 этого регистра установлен в единичное состояние, соответствующий вход порта инвертируется;
 --когда данный разряд сброшен, соответствующий вход порта не инвертируется
+mcp23017.writeIPOLA(0xFF)
 mcp23017.writeIPOLB(0xFF)
 
+mcp23017.readGPIOA()
 mcp23017.readGPIOB()
 
+function ioButtonsInterruptA()
+--[[    print("Interrupt A")]]
+    ioButtonsInterrupt()
+end
+
+function ioButtonsInterruptB()
+--[[    print("Interrupt B")]]
+    ioButtonsInterrupt()
+end
+
 function ioButtonsInterrupt()
-    print("Interrupt")
---[[    local gpiobStatusInterrupt = mcp23017.readINTCAPB()
-    print("gpiobStatusInterrupt:" .. gpiobStatusInterrupt)
-
-    local gpiobStatusFirstRead = mcp23017.readGPIOB()
-    print("gpiobStatusFirstRead:" .. gpiobStatusFirstRead)
-]]    
---[[    if buttonStateDown == 0 and]] --[[gpiobStatusInterrupt > 0 1 == 1 then]]
-        --[[buttonStateDown = 1]]
-        tmr.delay(config.io.button_delay_short_click_us)
-        readAndSend()
---[[
-        print("Short delay complete")
-]]
-        
---[[
-        print("gpiobStatusShort:" .. gpiobStatusShort)
-]]
---[[        if gpiobStatusShort > 0 1==1 then]]
---[[
-            local clickType = 1
-]]
-            --local gpioStatusFinish = gpiobStatusShort
-            --print("gpioStatusFinish:" .. gpioStatusFinish)
---[[
-            tmr.delay(config.io.button_delay_long_click_us)
-            print("Long delay complete")
-            local gpiobStatusLong = mcp23017.readGPIOB()
-]]
-            
---[[
-            if gpiobStatusLong > 0 then
-                gpioStatusFinish = gpiobStatusLong
-                clickType = 2
-            end
-]]
-
---[[
-            local aRelayIndexSet = {}
-            for buttonBit = 0, config.io.buttons_amount - 1 do
-                if bit.isset(gpioStatusFinish, buttonBit) then
-                    --print("buttonBit: " .. buttonBit)
-                    local buttonIndex = buttonBit + 1;
-                    --print("Button index: " .. buttonIndex .. " type: " .. "clickType")
-                    --mqttMessage(config.mqtt.topic_button .. "/" .. buttonIndex, "0")
-
-                    --print("aButtonStatus buttonIndex:" .. buttonIndex .. " value:" .. "1")
-                    aButtonStatus[buttonIndex] = 1
-
-        local i = 1
-        for i = 1, config.io.buttons_amount do
-            mqttMessage(config.mqtt.topic_button .. "/" .. i, aButtonStatus[i] == 1 and 'ON' or 'OFF')
-        end
-]]         
---[[
-                    for key, relayIndex in pairs(config.io.buttons_actions[buttonIndex][clickType]) do
-                        if not inTable(aRelayIndexSet, relayIndex) then
-                            table.insert(aRelayIndexSet, relayIndex)
-                        end
-                    end
-]]
---[[
-                end
-            end
-]]
---[[
-            for key, relayIndex in pairs(aRelayIndexSet) do
-                ioRelaySet(relayIndex)
-            end
-]]
---[[
-        end
-    end
-]]    
+--[[    print("Interrupt")]]
+    tmr.delay(config.io.button_delay_short_click_us)
+    ioSendState(false)
     ioButtonUp()
 end
 
-function readAndSend()
-    local gpiobStatusShort = mcp23017.readGPIOB()
-    local needResend = false
-    local buttonBit = 0
+function ioSendState(forceSend)
+    local needResendA = false
+    local needResendB = false
 
-    
-    for buttonBit = 0, config.io.buttons_amount - 1 do
-     local buttonIndex = buttonBit + 1;
-     local currentButtonIndexValue
-     if bit.isset(gpiobStatusShort, buttonBit) then
-        currentButtonIndexValue = 1
-     else
-        currentButtonIndexValue = 0
-     end
-    
-     if currentButtonIndexValue ~= aButtonStatus[buttonIndex] then
-      needResend = true
-     end
-     
-     aButtonStatus[buttonIndex] = currentButtonIndexValue
+needResendA, pinStatusA = readPinStates("A", mcp23017.readGPIOA(), config.io.pins_amountA)
+needResendB, pinStatusB = readPinStates("B", mcp23017.readGPIOB(), config.io.pins_amountB)
+
+    if needResendA == true or needResendB == true or forceSend == true  then
+        sendPinStateMQTT(PinStatusA, config.io.pins_amountA)
+        sendPinStateMQTT(PinStatusB, config.io.pins_amountB)
     end
-    
-    if needResend == true then
+end
+
+function sendPinStateMQTT(pinStatus, pins_amount)
      local i = 1
-     for i = 1, config.io.buttons_amount do
-        mqttMessage(config.mqtt.topic_button .. "/" .. i, aButtonStatus[i] == 1 and 'ON' or 'OFF')
+     for i = 1, pins_amount do
+        mqttMessage(config.mqtt.topic_pin .. "/" .. i, pinStatus[i] == 1 and 'ON' or 'OFF')
      end
+end
+
+function readPinStates(pinType, gpioStatus, pins_amount)
+    local needResend = false
+    local pinBit = 0
+    local pinStatus = {}
+    
+    local pinStatus
+    if pinType == "A" then
+        pinStatus = PinStatusA
+    elseif pinType == "B" then
+        pinStatus = PinStatusB
     end
+    
+    for pinBit = 0, pins_amount - 1 do
+        
+        local pinIndex = pinBit + 1;
+        local currentPinValue
+        
+        if bit.isset(gpioStatus, pinBit) then
+            currentPinValue = 1
+        else
+            currentPinValue = 0
+        end
+
+        if currentPinValue ~= pinStatus[pinIndex] then
+            needResend = true
+        end
+        
+        pinStatus[pinIndex] = currentPinValue
+    end
+
+    return needResend, pinStatus
 end
 
 
 function ioButtonUp(doContinue)
---print("ioButtonUp:")
-
     if doContinue == nil then
-        --print("ioButtonUp doContinue")
         tmr.alarm(config.io.button_up_tmr_alarmd_id, config.io.button_up_check_ms, tmr.ALARM_AUTO, function()
             ioButtonUp(true)
         end)
     end
     if mcp23017.readGPIOB() == 0 then
-        --print("ioButtonUp mcp23017.readGPIOB() == 0")
-        --[[buttonStateDown = 0]]
         tmr.unregister(config.io.button_up_tmr_alarmd_id)
     end
 end
 
-function ioRelaySet(relayIndex, state)
-    local state = state or 2;
-    assert(relayIndex >= 0 and relayIndex <= config.io.relays_amount, "relayIndex := 0.." .. config.io.relays_amount)
-    assert(state >= 0 and state <= 2, "state := 0..2")
+gpio.mode(config.io.pin_interruptA, gpio.INT, gpio.PULLUP)
+gpio.trig(config.io.pin_interruptA, "both", ioButtonsInterruptA)
 
-    local newState = 0
-    if relayIndex == 0 then
-        newState = state
-        local i = 1
-        for i = 1, config.io.relays_amount do
-            if newState == 2 then
-                aRelayStatus[i] = aRelayStatus[i] == 1 and 0 or 1
-            else
-                aRelayStatus[i] = newState
-            end
-            mqttMessage(config.mqtt.topic_relay .. "/" .. i, aRelayStatus[i] == 1 and 'ON' or 'OFF')
-        end
-    else
-        if state == 2 then
-            newState = aRelayStatus[relayIndex] == 1 and 0 or 1
-        else
-            newState = state
-        end
-        aRelayStatus[relayIndex] = newState
-        mqttMessage(config.mqtt.topic_relay .. "/" .. relayIndex, newState == 1 and 'ON' or 'OFF')
-    end
+gpio.mode(config.io.pin_interruptB, gpio.INT, gpio.PULLUP)
+gpio.trig(config.io.pin_interruptB, "both", ioButtonsInterruptB)
 
-    local gpioaStatus = 0
-    local i = 1
-    for i = 1, config.io.relays_amount do
-        if aRelayStatus[i] > 0 then
-            gpioaStatus = bit.set(gpioaStatus, i - 1)
-        else
-            gpioaStatus = bit.clear(gpioaStatus, i - 1)
-        end
-    end
-    mcp23017.writeGPIOA(gpioaStatus)
-end
-
-function ioSendState()
-    local i = 1
-    for i = 1, config.io.relays_amount do
-        mqttMessage(config.mqtt.topic_state_relay .. "/" .. i, aRelayStatus[i] == 1 and 'ON' or 'OFF')
-    end
-end
-
-function inTable(tbl, item)
-    for key, value in pairs(tbl) do
-        if value == item then return true end
-    end
-    return false
-end
-
-gpio.mode(config.io.pin_interrupt, gpio.INT, gpio.PULLUP)
-gpio.trig(config.io.pin_interrupt, "both", ioButtonsInterrupt)
