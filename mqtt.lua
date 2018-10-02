@@ -45,28 +45,11 @@ function mqttConnect(firstReconnect)
                 local ip = wifi.sta.getip() or "none"
                 local topic_prefix = config.mqtt.topic .. "/" .. ip .. "/" .. config.mqtt.dir_in .. "/"
                 local topic_main = string.sub(topic, #topic_prefix + 1)
-                -- relay
+
+                -- pin
 				print("MQTT message in: sub" .. string.sub(topic_main, 1, #config.mqtt.topic_pin + 1))
-                if string.sub(topic_main, 1, #config.mqtt.topic_pin + 1) == config.mqtt.topic_pin .. "/" then
-				
-                    local relayIndex = tonumber(string.sub(topic_main, #config.mqtt.topic_pin + 2))
-					print("MQTT message in: relayIndex" .. relayIndex)
-                    if relayIndex ~= nil then
-                        local relaySet = nil
-                        if message == config.mqtt.msg_off then
-                            relaySet = 0
-                        elseif message == config.mqtt.msg_on then
-                            relaySet = 1
-                        elseif message == config.mqtt.msg_invert then
-                            relaySet = 2
-                        end
-                        if relaySet ~= nil then
-                            pcall(ioRelaySet, relayIndex, relaySet)
-                        end
-                    end
-   
                 -- state uptime
-                elseif topic_main == config.mqtt.topic_state_uptime then
+                if topic_main == config.mqtt.topic_state_uptime then
                     mqttMessage(config.mqtt.topic_state_uptime, tmr.time())
                 -- state memory
                 elseif topic_main == config.mqtt.topic_state_memory then
